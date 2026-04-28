@@ -1,0 +1,130 @@
+// ============================================================
+// Prisma schema — ระบบจัดการ Software License บริษัท MEC
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------- Vendor (ผู้จำหน่าย) --------------------
+model Vendor {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  contact   String?
+  email     String?
+  phone     String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  softwares Software[]
+}
+
+// -------------------- Category (หมวดหมู่ Software) --------------------
+model Category {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  color     String?    @default("#3b82f6")
+  softwares Software[]
+}
+
+// -------------------- Software / License --------------------
+model Software {
+  id            Int       @id @default(autoincrement())
+  name          String                                  // เช่น Acrobat Pro, AutoCAD LT
+  owner         String?                                 // เจ้าของ Brand เช่น Adobe, Autodesk
+  description   String?                                 // คำอธิบาย
+  licenseCount  Int       @default(1)                   // จำนวน License ที่ซื้อมา
+  expDate       DateTime?                               // วันหมดอายุ
+  pricePerUnit  Float?                                  // ราคา/Unit
+  totalPrice    Float?                                  // ราคารวม
+  monthlyPrice  Float?                                  // ราคา/เดือน
+  status        String    @default("active")            // active | expired | cancelled
+  notes         String?
+
+  vendorId      Int?
+  vendor        Vendor?   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  categoryId    Int?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  assignments   Assignment[]
+  notifications NotificationLog[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([expDate])
+  @@index([vendorId])
+  @@index([categoryId])
+}
+
+// -------------------- User (พนักงาน) --------------------
+model User {
+  id           Int       @id @default(autoincrement())
+  nameTh       String?                                  // ชื่อ-นามสกุลภาษาไทย
+  nameEn       String?                                  // Display name ภาษาอังกฤษ
+  email        String?   @unique                        // Email หลักของบริษัท
+  accountEmail String?                                  // Email ที่ผูกกับ Account
+  phone        String?
+  position     String?                                  // ตำแหน่ง
+  department   String?                                  // ฝ่าย
+  office       String?                                  // สำนักงาน/โครงการ
+  remarks      String?
+  active       Boolean   @default(true)
+
+  assignments  Assignment[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([nameEn])
+  @@index([office])
+}
+
+// -------------------- Assignment (ผูก License → User) --------------------
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  softwareId  Int
+  software    Software @relation(fields: [softwareId], references: [id], onDelete: Cascade)
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // ใช้กรณียังไม่ผูกกับ User ในระบบ (เช่นข้อมูลเก่า / ที่นั่งว่าง)
+  displayName String?                                   // เช่น "ว่าง" หรือชื่อชั่วคราว
+
+  status      String   @default("Active")               // Active | Inactive | Vacant
+  duration    String?                                   // เช่น "1 เดือน", "ถาวร"
+  notes       String?
+
+  assignedAt  DateTime @default(now())
+  releasedAt  DateTime?
+
+  @@index([softwareId])
+  @@index([userId])
+  @@index([status])
+}
+
+// -------------------- NotificationLog --------------------
+model NotificationLog {
+  id          Int      @id @default(autoincrement())
+  softwareId  Int
+  software    Software @relation(fields: [softwareId], references: [id], onDelete: Cascade)
+  daysBefore  Int                                       // 60 / 30 / 7
+  channel     String                                    // email | line | banner
+  status      String                                    // sent | failed
+  message     String?
+  sentAt      DateTime @default(now())
+
+  @@unique([softwareId, daysBefore, channel])
+  @@index([sentAt])
+}
+
+// -------------------- Settings (key-value) --------------------
+model Setting {
+  key   String @id
+  value String
+}
