@@ -150,4 +150,119 @@ export default async function UsersPage({
               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               <option value="">ทั้งหมด</option>
-        
+              {positions.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Software</label>
+            <select
+              name="software"
+              defaultValue={softwareFilter || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              {softwareList.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">License</label>
+            <select
+              name="license"
+              defaultValue={licenseFilter || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              <option value="yes">มี License</option>
+              <option value="no">ไม่มี License</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">สถานะ</label>
+            <select
+              name="active"
+              defaultValue={activeFilter || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+          <div className="xl:col-span-7 flex gap-2 justify-end pt-1">
+            <Link
+              href="/users"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md text-sm"
+            >
+              ล้าง
+            </Link>
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium"
+            >
+              กรอง
+            </button>
+          </div>
+        </form>
+
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
+                  <th className="text-left px-4 py-2.5">ชื่อ</th>
+                  <th className="text-left px-4 py-2.5">Email</th>
+                  <th className="text-left px-4 py-2.5">ตำแหน่ง / ฝ่าย</th>
+                  <th className="text-left px-4 py-2.5">สำนักงาน</th>
+                  <th className="text-center px-4 py-2.5">License</th>
+                  <th className="text-left px-4 py-2.5">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/users/${u.id}`} className="font-medium hover:text-blue-600">
+                        {u.nameTh || u.nameEn || "-"}
+                      </Link>
+                      {u.nameEn && u.nameTh && (
+                        <div className="text-xs text-slate-500">{u.nameEn}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-600">{u.email || "-"}</td>
+                    <td className="px-4 py-2.5 text-slate-600">
+                      {u.position || u.department || "-"}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-600">{u.office || "-"}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <Badge className="bg-blue-100 text-blue-800">
+                        {u._count.assignments}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {u.active ? (
+                        <Badge className="bg-emerald-100 text-emerald-800">Active</Badge>
+                      ) : (
+                        <Badge className="bg-slate-100 text-slate-600">Inactive</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                      ไม่พบผู้ใช้งาน
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
