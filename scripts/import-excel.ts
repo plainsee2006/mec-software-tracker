@@ -42,7 +42,11 @@ function parseDate(v: any): Date | null {
   } else d = new Date(String(v));
   if (isNaN(d.getTime())) return null;
   const y = d.getFullYear();
+  // กรณี พ.ศ. ที่ยังไม่แปลง เช่น 2569, 2570
   if (y >= 2400 && y <= 2700) return new Date(y - 543, d.getMonth(), d.getDate());
+  // กรณี Excel แปลงวันที่ พ.ศ. ผิด → ปีออกมาเป็น 1969-1972 (พ.ศ. 2512-2515)
+  // ให้บวก 57 เพื่อแปลงกลับเป็น ค.ศ. ที่ถูกต้อง
+  if (y >= 1900 && y <= 1975) return new Date(y + 57, d.getMonth(), d.getDate());
   return d;
 }
 const num = (v: any) => {

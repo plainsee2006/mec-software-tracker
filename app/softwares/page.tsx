@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import {
@@ -17,27 +17,22 @@ export const dynamic = "force-dynamic";
 export default async function SoftwareListPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string; vendor?: string };
+  searchParams: { software?: string; status?: string; vendor?: string; license?: string };
 }) {
-  const q = searchParams.q?.trim();
+  const filterSoftware = searchParams.software;
   const filterStatus = searchParams.status;
   const filterVendor = searchParams.vendor;
+  const filterLicense = searchParams.license; // full | available | unused
 
   let softwares: any[] = [];
   let vendors: any[] = [];
+  let allSoftwareNames: { id: number; name: string }[] = [];
   try {
-    [softwares, vendors] = await Promise.all([
+    [softwares, vendors, allSoftwareNames] = await Promise.all([
       prisma.software.findMany({
         where: {
           AND: [
-            q
-              ? {
-                  OR: [
-                    { name: { contains: q, mode: "insensitive" } },
-                    { owner: { contains: q, mode: "insensitive" } },
-                  ],
-                }
-              : {},
+            filterSoftware ? { name: filterSoftware } : {},
             filterVendor ? { vendor: { name: filterVendor } } : {},
           ],
         },
@@ -45,14 +40,39 @@ export default async function SoftwareListPage({
         orderBy: [{ expDate: "asc" }, { name: "asc" }],
       }),
       prisma.vendor.findMany({ orderBy: { name: "asc" } }),
+      prisma.software.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
     ]);
   } catch {
     // DB not ready
   }
 
-  const filtered = filterStatus
+  const filteredByStatus = filterStatus
     ? softwares.filter((s) => getExpiryStatus(s.expDate) === filterStatus)
     : softwares;
+
+  const filtered = filterLicense
+    ? filteredByStatus.filter((s) => {
+        const used = s._count.assignments;
+        const total = s.licenseCount;
+        if (filterLicense === "full") return used >= total && total > 0;
+        if (filterLicense === "available") return used > 0 && used < total;
+        if (filterLicense === "unused") return used === 0;
+        return true;
+      })
+    : filteredByStatus;
+
+  // unique software names for dropdown
+  const softwareNameSet = new Set<string>();
+  const uniqueSoftwareNames: string[] = [];
+  for (const s of allSoftwareNames) {
+    if (!softwareNameSet.has(s.name)) {
+      softwareNameSet.add(s.name);
+      uniqueSoftwareNames.push(s.name);
+    }
+  }
 
   return (
     <>
@@ -71,45 +91,75 @@ export default async function SoftwareListPage({
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Filters */}
-        <form className="bg-white rounded-lg border border-slate-200 p-4 mb-4 flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[200px] relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              name="q"
-              defaultValue={q || ""}
-              placeholder="ค้นหา ชื่อ Software / Brand..."
-              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
+        <form className="bg-white rounded-lg border border-slate-200 p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Software</label>
+            <select
+              name="software"
+              defaultValue={filterSoftware || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              {uniqueSoftwareNames.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
           </div>
-          <select
-            name="vendor"
-            defaultValue={filterVendor || ""}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-          >
-            <option value="">Vendor: ทั้งหมด</option>
-            {vendors.map((v) => (
-              <option key={v.id} value={v.name}>{v.name}</option>
-            ))}
-          </select>
-          <select
-            name="status"
-            defaultValue={filterStatus || ""}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-          >
-            <option value="">สถานะ: ทั้งหมด</option>
-            <option value="expired">หมดอายุแล้ว</option>
-            <option value="critical">≤ 7 วัน</option>
-            <option value="warning">≤ 30 วัน</option>
-            <option value="notice">≤ 60 วัน</option>
-            <option value="ok">ปกติ</option>
-          </select>
-          <button
-            type="submit"
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md text-sm"
-          >
-            กรอง
-          </button>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Vendor</label>
+            <select
+              name="vendor"
+              defaultValue={filterVendor || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.name}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">License</label>
+            <select
+              name="license"
+              defaultValue={filterLicense || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              <option value="full">เต็ม (ใช้ครบทุก seat)</option>
+              <option value="available">มี seat ว่าง</option>
+              <option value="unused">ยังไม่ได้ใช้งาน</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">สถานะ</label>
+            <select
+              name="status"
+              defaultValue={filterStatus || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              <option value="expired">หมดอายุแล้ว</option>
+              <option value="critical">≤ 7 วัน</option>
+              <option value="warning">≤ 30 วัน</option>
+              <option value="notice">≤ 60 วัน</option>
+              <option value="ok">ปกติ</option>
+            </select>
+          </div>
+          <div className="flex items-end gap-2">
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            >
+              กรอง
+            </button>
+            <Link
+              href="/softwares"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-md text-sm"
+            >
+              ล้าง
+            </Link>
+          </div>
         </form>
 
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
@@ -139,60 +189,3 @@ export default async function SoftwareListPage({
                       <td className="px-4 py-2.5">
                         <Link
                           href={`/softwares/${s.id}`}
-                          className="font-medium text-slate-900 hover:text-blue-600"
-                        >
-                          {s.name}
-                        </Link>
-                        {s.owner && (
-                          <div className="text-xs text-slate-500 mt-0.5">{s.owner}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-600">
-                        {s.vendor?.name || "-"}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {s.category && (
-                          <Badge className="bg-slate-100 text-slate-700">
-                            {s.category.name}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <span className="font-medium">{s._count.assignments}</span>
-                        <span className="text-slate-400">/{s.licenseCount}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-slate-600">
-                        {formatTHB(s.pricePerUnit)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-medium">
-                        {formatTHB(s.totalPrice)}
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
-                        {formatDate(s.expDate)}
-                        {days !== null && (
-                          <div className="text-xs text-slate-400">{days} วัน</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Badge className={expiryStatusBadgeClass(status)}>
-                          {expiryStatusLabel(status)}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
-                      ไม่พบ Software ที่ตรงกับเงื่อนไข
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
