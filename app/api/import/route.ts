@@ -278,4 +278,6 @@ export async function POST(request: Request) {
       categories: categoryMap.size,
     });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  }
+}
