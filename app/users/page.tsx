@@ -213,6 +213,7 @@ export default async function UsersPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
+                  <th className="text-center px-4 py-2.5 w-16">ลำดับ</th>
                   <th className="text-left px-4 py-2.5">ชื่อ</th>
                   <th className="text-left px-4 py-2.5">Email</th>
                   <th className="text-left px-4 py-2.5">ตำแหน่ง / ฝ่าย</th>
@@ -222,8 +223,9 @@ export default async function UsersPage({
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {users.map((u, idx) => (
                   <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
+                    <td className="px-4 py-2.5 text-center text-slate-500 text-sm">{idx + 1}</td>
                     <td className="px-4 py-2.5">
                       <Link href={`/users/${u.id}`} className="font-medium hover:text-blue-600">
                         {u.nameTh || u.nameEn || "-"}
@@ -253,16 +255,5 @@ export default async function UsersPage({
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
-                      ไม่พบผู้ใช้งาน
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                      ไม่พบผู้ใ�
