@@ -54,22 +54,43 @@ const rowValues = (row: ExcelJS.Row): any[] => {
   return arr.slice(1);
 };
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    const candidates = [
-      path.join(process.cwd(), "public", "ข้อมูลโปรแกรมทั้งหมด-07-11-2568.xlsx"),
-      path.join(process.cwd(), "..", "ข้อมูลโปรแกรมทั้งหมด-07-11-2568.xlsx"),
-    ];
-    const filePath = candidates.find((p) => fs.existsSync(p));
-    if (!filePath) {
-      return NextResponse.json(
-        { ok: false, error: "ไม่พบไฟล์ Excel — กรุณาวางไว้ที่ public/" },
-        { status: 400 }
-      );
-    }
-
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.readFile(filePath);
+
+    // ลองอ่านจาก FormData ก่อน (ถ้ามีการ upload ไฟล์)
+    const contentType = request.headers.get("content-type") || "";
+    let usedSource = "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const file = formData.get("file");
+      if (file && file instanceof File) {
+        const buf = Buffer.from(await file.arrayBuffer());
+        await wb.xlsx.load(buf);
+        usedSource = `upload: ${file.name}`;
+      } else {
+        return NextResponse.json(
+          { ok: false, error: "ไม่พบไฟล์ในการ upload" },
+          { status: 400 }
+        );
+      }
+    } else {
+      // fallback: หาจากดิสก์
+      const candidates = [
+        path.join(process.cwd(), "public", "ข้อมูลโปรแกรมทั้งหมด-07-11-2568.xlsx"),
+        path.join(process.cwd(), "..", "ข้อมูลโปรแกรมทั้งหมด-07-11-2568.xlsx"),
+      ];
+      const filePath = candidates.find((p) => fs.existsSync(p));
+      if (!filePath) {
+        return NextResponse.json(
+          { ok: false, error: "ไม่พบไฟล์ Excel — กรุณา upload ไฟล์ หรือวางไว้ที่ public/" },
+          { status: 400 }
+        );
+      }
+      await wb.xlsx.readFile(filePath);
+      usedSource = `disk: ${path.basename(filePath)}`;
+    }
 
     const masterSheet = wb.getWorksheet("รวมทุกโปรแกรม");
     if (!masterSheet) {
@@ -249,6 +270,7 @@ export async function POST() {
 
     return NextResponse.json({
       ok: true,
+      source: usedSource,
       softwares: swCount,
       users: userCount,
       assignments: assignCount,
