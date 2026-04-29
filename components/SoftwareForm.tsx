@@ -238,4 +238,114 @@ function DateField({
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     // เก็บเฉพาะตัวเลข แล้วใส่ / อัตโนมัติ
-    const raw = e.target.
+    const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
+    let formatted = raw;
+    if (raw.length >= 5) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4)}`;
+    else if (raw.length >= 3) formatted = `${raw.slice(0, 2)}/${raw.slice(2)}`;
+    setText(formatted);
+  }
+
+  function handlePicker(e: React.ChangeEvent<HTMLInputElement>) {
+    const iso = e.target.value; // "yyyy-mm-dd"
+    if (!iso) return;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (m) setText(`${m[3]}/${m[2]}/${m[1]}`);
+  }
+
+  // value ของ native picker — แปลงจาก dd/mm/yyyy เป็น yyyy-mm-dd ถ้า valid
+  const pickerValue = (() => {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+  })();
+
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={text}
+          onChange={handleChange}
+          placeholder="dd/mm/yyyy"
+          inputMode="numeric"
+          maxLength={10}
+          className="w-full pr-10 px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+        />
+        {/* native picker ซ่อนข้างๆ — คลิกไอคอนเพื่อเปิด */}
+        <input
+          type="date"
+          value={pickerValue}
+          onChange={handlePicker}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 opacity-0 cursor-pointer"
+          tabIndex={-1}
+          aria-label="เลือกวันที่จากปฏิทิน"
+        />
+        <svg
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function SelectWithCreate({
+  label,
+  name,
+  createName,
+  options,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  createName: string;
+  options: { id: number; name: string }[];
+  defaultValue?: number;
+}) {
+  const [creating, setCreating] = useState(false);
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      {creating ? (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            name={createName}
+            placeholder="พิมพ์ชื่อใหม่"
+            className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => setCreating(false)}
+            className="text-xs text-slate-500 hover:text-slate-700"
+          >
+            ยกเลิก
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <select
+            name={name}
+            defaultValue={defaultValue ?? ""}
+            className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm"
+          >
+            <option value="">— เลือก —</option>
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="text-xs text-blue-600 hover:text-blue-700 whitespace-nowrap"
+          >
+            + สร้างใหม่
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
