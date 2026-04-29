@@ -12,6 +12,26 @@ interface Props {
   categories: CategoryOpt[];
 }
 
+/** "yyyy-mm-dd" → "dd/mm/yyyy" */
+function isoToDmy(iso: string): string {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+/** "dd/mm/yyyy" → "yyyy-mm-dd" (returns "" if invalid) */
+function dmyToIso(dmy: string): string {
+  if (!dmy) return "";
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(dmy.trim());
+  if (!m) return "";
+  const dd = m[1].padStart(2, "0");
+  const mm = m[2].padStart(2, "0");
+  const yyyy = m[3];
+  // sanity check
+  const d = new Date(`${yyyy}-${mm}-${dd}`);
+  if (isNaN(d.getTime())) return "";
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function SoftwareForm({ initial, vendors, categories }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -23,6 +43,17 @@ export default function SoftwareForm({ initial, vendors, categories }: Props) {
     setError(null);
     const data = Object.fromEntries(new FormData(e.currentTarget));
 
+    // expDate มาเป็น dd/mm/yyyy → ต้องแปลงเป็น yyyy-mm-dd ก่อนส่ง API
+    const expDateRaw = String(data.expDate || "").trim();
+    let expDateIso: string | null = null;
+    if (expDateRaw) {
+      expDateIso = dmyToIso(expDateRaw);
+      if (!expDateIso) {
+        setError("วันหมดอายุไม่ถูกต้อง — ใส่รูปแบบ dd/mm/yyyy เช่น 31/01/2026");
+        return;
+      }
+    }
+
     const payload: any = {
       name: data.name,
       owner: data.owner || null,
@@ -31,7 +62,7 @@ export default function SoftwareForm({ initial, vendors, categories }: Props) {
       pricePerUnit: data.pricePerUnit ? Number(data.pricePerUnit) : null,
       totalPrice: data.totalPrice ? Number(data.totalPrice) : null,
       monthlyPrice: data.monthlyPrice ? Number(data.monthlyPrice) : null,
-      expDate: data.expDate || null,
+      expDate: expDateIso,
       vendorId: data.vendorId ? Number(data.vendorId) : null,
       categoryId: data.categoryId ? Number(data.categoryId) : null,
       vendorNew: data.vendorNew || null,
@@ -67,7 +98,7 @@ export default function SoftwareForm({ initial, vendors, categories }: Props) {
   }
 
   const expDateValue = initial?.expDate
-    ? new Date(initial.expDate).toISOString().slice(0, 10)
+    ? isoToDmy(new Date(initial.expDate).toISOString().slice(0, 10))
     : "";
 
   return (
@@ -114,7 +145,7 @@ export default function SoftwareForm({ initial, vendors, categories }: Props) {
       <div className="bg-white rounded-lg border border-slate-200 p-5 space-y-4">
         <h3 className="font-semibold text-slate-900">วันหมดอายุ & หมายเหตุ</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="วันหมดอายุ" name="expDate" type="date" defaultValue={expDateValue} />
+          <DateField label="วันหมดอายุ" name="expDate" defaultValue={expDateValue} />
         </div>
         <Field label="หมายเหตุ" name="notes" type="textarea" defaultValue={initial?.notes} />
       </div>
@@ -193,60 +224,18 @@ function Field({
   );
 }
 
-function SelectWithCreate({
+/** Date input รูปแบบ dd/mm/yyyy พร้อม auto-mask + ปุ่มเปิด native picker */
+function DateField({
   label,
   name,
-  createName,
-  options,
   defaultValue,
 }: {
   label: string;
   name: string;
-  createName: string;
-  options: { id: number; name: string }[];
-  defaultValue?: number;
+  defaultValue?: string; // "dd/mm/yyyy"
 }) {
-  const [creating, setCreating] = useState(false);
-  return (
-    <div>
-      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
-      {creating ? (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            name={createName}
-            placeholder="พิมพ์ชื่อใหม่"
-            className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm"
-          />
-          <button
-            type="button"
-            onClick={() => setCreating(false)}
-            className="text-xs text-slate-500 hover:text-slate-700"
-          >
-            ยกเลิก
-          </button>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <select
-            name={name}
-            defaultValue={defaultValue ?? ""}
-            className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm"
-          >
-            <option value="">— เลือก —</option>
-            {options.map((o) => (
-              <option key={o.id} value={o.id}>{o.name}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="text-xs text-blue-600 hover:text-blue-700 whitespace-nowrap"
-          >
-            + สร้างใหม่
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+  const [text, setText] = useState(defaultValue ?? "");
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // เก็บเฉพาะตัวเลข แล้วใส่ / อัตโนมัติ
+    const raw = e.target.
