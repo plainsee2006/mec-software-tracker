@@ -189,3 +189,60 @@ export default async function SoftwareListPage({
                       <td className="px-4 py-2.5">
                         <Link
                           href={`/softwares/${s.id}`}
+                          className="font-medium text-slate-900 hover:text-blue-600"
+                        >
+                          {s.name}
+                        </Link>
+                        {s.owner && (
+                          <div className="text-xs text-slate-500 mt-0.5">{s.owner}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-600">
+                        {s.vendor?.name || "-"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {s.category && (
+                          <Badge className="bg-slate-100 text-slate-700">
+                            {s.category.name}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="font-medium">{s._count.assignments}</span>
+                        <span className="text-slate-400">/{s.licenseCount}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-slate-600">
+                        {formatTHB(s.pricePerUnit)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium">
+                        {formatTHB(s.totalPrice)}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
+                        {formatDate(s.expDate)}
+                        {days !== null && (
+                          <div className="text-xs text-slate-400">{days} วัน</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge className={expiryStatusBadgeClass(status)}>
+                          {expiryStatusLabel(status)}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
+                      ไม่พบ Software ที่ตรงกับเงื่อนไข
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
