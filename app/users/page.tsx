@@ -258,4 +258,14 @@ export default async function UsersPage({
                     <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                       ไม่พบผู้ใช้งาน
                     </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
             
