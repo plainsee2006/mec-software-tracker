@@ -66,8 +66,8 @@ export async function POST(request: Request) {
       const formData = await request.formData();
       const file = formData.get("file");
       if (file && file instanceof File) {
-        const buf = Buffer.from(await file.arrayBuffer());
-        await wb.xlsx.load(buf);
+        const arrayBuffer = await file.arrayBuffer();
+        await wb.xlsx.load(arrayBuffer as any);
         usedSource = `upload: ${file.name}`;
       } else {
         return NextResponse.json(
@@ -278,6 +278,4 @@ export async function POST(request: Request) {
       categories: categoryMap.size,
     });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
-  }
-}
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 
