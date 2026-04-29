@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LayoutDashboard, Package, Users, Building2, Tag, Settings } from "lucide-react";
 import Providers from "./Providers";
+import LogoutButton from "@/components/LogoutButton";
 
 export const metadata: Metadata = {
   title: "MEC Software Tracker",
@@ -28,7 +29,6 @@ export default function RootLayout({
       <body>
         <Providers>
           <div className="min-h-screen flex">
-            {/* Sidebar */}
             <aside className="w-60 bg-slate-900 text-slate-100 flex flex-col">
               <div className="px-5 py-5 border-b border-slate-800">
                 <div className="text-lg font-bold">MEC Software</div>
@@ -46,12 +46,13 @@ export default function RootLayout({
                   </Link>
                 ))}
               </nav>
+              <div className="border-t border-slate-800 py-2">
+                <LogoutButton />
+              </div>
               <div className="px-5 py-3 text-xs text-slate-500 border-t border-slate-800">
                 v1.0 · MEC Engineering
               </div>
             </aside>
-
-            {/* Main */}
             <main className="flex-1 overflow-auto">{children}</main>
           </div>
         </Providers>

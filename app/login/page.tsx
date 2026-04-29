@@ -1,32 +1,107 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Lock, User } from "lucide-react";
+
+function LoginForm() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const redirect = params.get("redirect") || "/";
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin-auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j.ok) {
+        setError(j.error || "Login failed");
+        return;
+      }
+      router.push(redirect);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-700 px-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+        <div className="text-center mb-6">
+          <div className="text-2xl font-bold text-slate-900">MEC Software</div>
+          <div className="text-sm text-slate-500 mt-1">License Tracker</div>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Username</label>
+            <div className="relative">
+              <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoFocus
+                placeholder="username"
+                autoComplete="username"
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="password"
+                autoComplete="current-password"
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-md text-sm disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+        <p className="text-xs text-slate-400 text-center mt-6">
+          MEC Engineering admin only
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <div className="bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center gap-6 w-80">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-slate-800">MEC Software</div>
-          <div className="text-sm text-slate-500 mt-1">License Tracker</div>
-        </div>
-
-        <div className="w-full border-t border-slate-100" />
-
-        <div className="text-sm text-slate-600 text-center">
-          เข้าสู่ระบบด้วยบัญชี LINE ของคุณ
-        </div>
-
-        <button
-          onClick={() => signIn("line", { callbackUrl: "/" })}
-          className="w-full flex items-center justify-center gap-3 bg-[#06C755] hover:bg-[#05a849] text-white font-semibold py-3 px-6 rounded-xl transition"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-            <path d="M12 2C6.48 2 2 6.03 2 11c0 3.19 1.78 6.01 4.54 7.76-.2.71-.74 2.56-.85 2.96-.13.48.18.47.38.34.15-.1 2.44-1.62 3.43-2.28.64.09 1.3.14 1.97.14 5.52 0 10-4.03 10-9S17.52 2 12 2z"/>
-          </svg>
-          เข้าสู่ระบบด้วย LINE
-        </button>
-      </div>
-    </div>
+    <Suspense fallback={<div className="min-h-screen bg-slate-900" />}>
+      <LoginForm />
+    </Suspense>
   );
 }
