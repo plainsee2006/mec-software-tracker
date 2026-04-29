@@ -9,29 +9,60 @@ export const dynamic = "force-dynamic";
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: { q?: string; office?: string };
+  searchParams: {
+    q?: string;
+    office?: string;
+    position?: string;
+    software?: string;
+    license?: string;
+    active?: string;
+  };
 }) {
   const q = searchParams.q?.trim();
   const office = searchParams.office;
+  const position = searchParams.position;
+  const softwareFilter = searchParams.software; // software id (string)
+  const licenseFilter = searchParams.license; // "yes" | "no"
+  const activeFilter = searchParams.active; // "true" | "false"
 
   let users: any[] = [];
   let offices: string[] = [];
+  let positions: string[] = [];
+  let softwareList: { id: number; name: string }[] = [];
+
   try {
+    const where: any = {
+      AND: [
+        q
+          ? {
+              OR: [
+                { nameTh: { contains: q, mode: "insensitive" } },
+                { nameEn: { contains: q, mode: "insensitive" } },
+                { email: { contains: q, mode: "insensitive" } },
+              ],
+            }
+          : {},
+        office ? { office } : {},
+        position ? { position } : {},
+        activeFilter === "true"
+          ? { active: true }
+          : activeFilter === "false"
+          ? { active: false }
+          : {},
+        softwareFilter
+          ? {
+              assignments: {
+                some: {
+                  softwareId: parseInt(softwareFilter, 10),
+                },
+              },
+            }
+          : {},
+      ],
+    };
+
     users = await prisma.user.findMany({
-      where: {
-        AND: [
-          q
-            ? {
-                OR: [
-                  { nameTh: { contains: q, mode: "insensitive" } },
-                  { nameEn: { contains: q, mode: "insensitive" } },
-                  { email: { contains: q, mode: "insensitive" } },
-                ],
-              }
-            : {},
-          office ? { office } : {},
-        ],
-      },
+      where,
       include: {
         _count: { select: { assignments: true } },
         assignments: {
@@ -41,12 +72,33 @@ export default async function UsersPage({
       },
       orderBy: { nameEn: "asc" },
     });
-    const allOffices = await prisma.user.findMany({
-      select: { office: true },
-      where: { office: { not: null } },
-      distinct: ["office"],
-    });
+
+    // license filter (has/doesn't have) — apply in memory after counting
+    if (licenseFilter === "yes") {
+      users = users.filter((u) => u._count.assignments > 0);
+    } else if (licenseFilter === "no") {
+      users = users.filter((u) => u._count.assignments === 0);
+    }
+
+    const [allOffices, allPositions, allSoftware] = await Promise.all([
+      prisma.user.findMany({
+        select: { office: true },
+        where: { office: { not: null } },
+        distinct: ["office"],
+      }),
+      prisma.user.findMany({
+        select: { position: true },
+        where: { position: { not: null } },
+        distinct: ["position"],
+      }),
+      prisma.software.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
     offices = allOffices.map((u) => u.office!).filter(Boolean).sort();
+    positions = allPositions.map((u) => u.position!).filter(Boolean).sort();
+    softwareList = allSoftware;
   } catch {}
 
   return (
@@ -64,79 +116,38 @@ export default async function UsersPage({
         }
       />
       <div className="max-w-7xl mx-auto px-6 py-6">
-        <form className="bg-white rounded-lg border border-slate-200 p-4 mb-4 flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[200px] relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+        {/* Filters */}
+        <form className="bg-white rounded-lg border border-slate-200 p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
+          <div className="xl:col-span-2 relative">
+            <label className="block text-xs font-medium text-slate-600 mb-1">ค้นหา</label>
+            <Search className="w-4 h-4 absolute left-3 top-[2.15rem] text-slate-400" />
             <input
               type="text"
               name="q"
               defaultValue={q || ""}
-              placeholder="ค้นหา ชื่อ / Email..."
-              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm"
+              placeholder="ชื่อ / Email..."
+              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
-          <select
-            name="office"
-            defaultValue={office || ""}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-          >
-            <option value="">สำนักงาน: ทั้งหมด</option>
-            {offices.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
-          <button type="submit" className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md text-sm">
-            กรอง
-          </button>
-        </form>
-
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-2.5">ชื่อ</th>
-                  <th className="text-left px-4 py-2.5">Email</th>
-                  <th className="text-left px-4 py-2.5">ตำแหน่ง / ฝ่าย</th>
-                  <th className="text-left px-4 py-2.5">สำนักงาน</th>
-                  <th className="text-center px-4 py-2.5">License</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-2.5">
-                      <Link href={`/users/${u.id}`} className="font-medium hover:text-blue-600">
-                        {u.nameTh || u.nameEn || "-"}
-                      </Link>
-                      {u.nameEn && u.nameTh && (
-                        <div className="text-xs text-slate-500">{u.nameEn}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">{u.email || "-"}</td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {u.position || u.department || "-"}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">{u.office || "-"}</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <Badge className="bg-blue-100 text-blue-800">
-                        {u._count.assignments}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
-                      ไม่พบผู้ใช้งาน
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">สำนักงาน</label>
+            <select
+              name="office"
+              defaultValue={office || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+              {offices.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
           </div>
-        </div>
-      </div>
-    </>
-  );
-}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">ตำแหน่ง / ฝ่าย</label>
+            <select
+              name="position"
+              defaultValue={position || ""}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="">ทั้งหมด</option>
+        
