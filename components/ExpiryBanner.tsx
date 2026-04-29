@@ -122,3 +122,38 @@ function BannerCard({
       <div className="divide-y divide-white/60">
         {display.map((item) => {
           const d = daysUntil(item.expDate);
+          const dayText =
+            d === null ? "-" : d < 0 ? `เกิน ${Math.abs(d)} วัน` : `เหลือ ${d} วัน`;
+          return (
+            <Link
+              key={item.id}
+              href={`/softwares/${item.id}`}
+              className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${tones.row}`}
+            >
+              <span className="font-medium text-slate-900 flex-1 truncate">{item.name}</span>
+              {item.vendor && (
+                <span className="text-xs text-slate-500 hidden sm:inline truncate max-w-[180px]">
+                  {item.vendor.name}
+                </span>
+              )}
+              <span className="text-xs text-slate-600 font-mono whitespace-nowrap">
+                {formatDate(item.expDate)}
+              </span>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded whitespace-nowrap ${tones.pill}`}>
+                {dayText}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+      {more > 0 && (
+        <div className="px-4 py-2 text-xs text-slate-600 bg-white/40 border-t border-white/60">
+          …และอีก {more} รายการ —{" "}
+          <Link href="/softwares?status=expired" className="text-blue-600 hover:underline">
+            ดูทั้งหมด
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
