@@ -175,14 +175,24 @@ async function main() {
 
   const sheets: { sheetName: string; programs: string[] }[] = [
     { sheetName: "Adobe", programs: ["Acrobat Pro"] },
-    { sheetName: "AutoCAD LT", programs: ["AutoCAD LT"] },
-    { sheetName: "AEC + DOC", programs: ["AEC", "DOC"] },
-    { sheetName: "AutoCAD + BIM Collaborate P", programs: ["AutoCAD", "BIM Collaborate Pro"] },
-    { sheetName: "Sketch up + Midas", programs: ["Sketch up PRO", "Midas"] },
+    { sheetName: "AutoCad LT -19-06-2026", programs: ["AutoCAD LT"] },
+    { sheetName: "AutoCad LT -03-07-28", programs: ["AutoCAD LT"] },
+    { sheetName: "AutoCad LT -31-08-26", programs: ["AutoCAD LT"] },
+    { sheetName: "AutoCad LT -27-12-26", programs: ["AutoCAD LT"] },
+    { sheetName: "AEC", programs: ["AEC"] },
+    { sheetName: "AutoDesk DOC", programs: ["AutoDesk DOC", "DOC"] },
+    { sheetName: "AutoCAD", programs: ["AutoCAD"] },
+    { sheetName: "BIM Collaborate P", programs: ["BIM Collaborate Pro"] },
+    { sheetName: "Sketchup Pro", programs: ["Sketch up Pro", "Sketchup Pro"] },
+    { sheetName: "Midas", programs: ["Midas Gen Plus", "Midas"] },
     { sheetName: "Microsoft Basic", programs: ["Microsoft 365 Basic"] },
     { sheetName: "Microsft Standard", programs: ["Microsoft 365 Standard"] },
     { sheetName: "Microsoft Premium", programs: ["Microsoft 365 Premium"] },
     { sheetName: "Microsoft Project", programs: ["Microsoft Project"] },
+    { sheetName: "AutoCAD LT", programs: ["AutoCAD LT"] },
+    { sheetName: "AEC + DOC", programs: ["AEC", "DOC"] },
+    { sheetName: "AutoCAD + BIM Collaborate P", programs: ["AutoCAD", "BIM Collaborate Pro"] },
+    { sheetName: "Sketch up + Midas", programs: ["Sketch up PRO", "Midas"] },
   ];
 
   for (const spec of sheets) {
