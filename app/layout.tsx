@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LayoutDashboard, Package, Users, Building2, Tag, Settings } from "lucide-react";
+import { LayoutDashboard, Package, Users, Building2, Tag, Settings, History } from "lucide-react";
 import Providers from "./Providers";
 import LogoutButton from "@/components/LogoutButton";
 
@@ -21,6 +21,7 @@ export default function RootLayout({
     { href: "/users", label: "ผู้ใช้งาน", icon: Users },
     { href: "/vendors", label: "Vendors", icon: Building2 },
     { href: "/categories", label: "หมวดหมู่", icon: Tag },
+    { href: "/history", label: "ประวัติ", icon: History },
     { href: "/settings", label: "ตั้งค่า", icon: Settings },
   ];
 

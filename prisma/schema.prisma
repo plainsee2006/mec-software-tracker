@@ -53,6 +53,7 @@ model Software {
 
   assignments   Assignment[]
   notifications NotificationLog[]
+  renewals      Renewal[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -60,6 +61,40 @@ model Software {
   @@index([expDate])
   @@index([vendorId])
   @@index([categoryId])
+}
+
+// -------------------- Renewal (ประวัติการต่อสัญญา) --------------------
+model Renewal {
+  id            Int       @id @default(autoincrement())
+  softwareId    Int
+  software      Software  @relation(fields: [softwareId], references: [id], onDelete: Cascade)
+  renewalDate   DateTime                                  // วันที่ต่อสัญญา
+  expDateBefore DateTime?                                 // exp เดิม (null = ครั้งแรก)
+  expDateAfter  DateTime                                  // exp ใหม่
+  amountPaid    Float?                                    // ราคาที่จ่ายครั้งนี้
+  vendor        String?                                   // ชื่อ vendor ที่ต่อกับ
+  notes         String?
+  createdBy     String?                                   // username ของคนที่บันทึก
+  createdAt     DateTime  @default(now())
+
+  @@index([softwareId])
+  @@index([renewalDate])
+}
+
+// -------------------- AuditLog (ประวัติแก้ไขอัตโนมัติ) --------------------
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  entityType  String                                      // software | user | assignment | renewal
+  entityId    Int
+  action      String                                      // create | update | delete
+  field       String?                                     // ชื่อ field เช่น expDate, totalPrice (null สำหรับ create/delete)
+  valueBefore String?                                     // JSON string
+  valueAfter  String?
+  changedBy   String?                                     // username
+  changedAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([changedAt])
 }
 
 // -------------------- User (พนักงาน) --------------------

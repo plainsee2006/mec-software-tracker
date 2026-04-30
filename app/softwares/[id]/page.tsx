@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Pencil, Plus, Mail, Phone, Building, MapPin, Trash2 } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
+import RenewalPanel from "@/components/RenewalPanel";
 import {
   formatDate,
   formatTHB,
@@ -31,6 +32,9 @@ export default async function SoftwareDetailPage({
       assignments: {
         include: { user: true },
         orderBy: { id: "asc" },
+      },
+      renewals: {
+        orderBy: { renewalDate: "desc" },
       },
     },
   });
@@ -132,6 +136,22 @@ export default async function SoftwareDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Renewal Panel */}
+        <RenewalPanel
+          softwareId={sw.id}
+          currentExpDate={sw.expDate ? sw.expDate.toISOString() : null}
+          renewals={sw.renewals.map((r) => ({
+            id: r.id,
+            renewalDate: r.renewalDate.toISOString(),
+            expDateBefore: r.expDateBefore ? r.expDateBefore.toISOString() : null,
+            expDateAfter: r.expDateAfter.toISOString(),
+            amountPaid: r.amountPaid,
+            vendor: r.vendor,
+            notes: r.notes,
+            createdBy: r.createdBy,
+          }))}
+        />
 
         {/* Assignments */}
         <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">

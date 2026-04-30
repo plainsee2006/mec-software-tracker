@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const id = Number(params.id);
@@ -15,6 +16,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     const id = Number(params.id);
     const body = await req.json();
+    const username = await getCurrentUser();
+
+    // อ่าน state เก่ามาเพื่อทำ audit diff
+    const before = await prisma.software.findUnique({
+      where: { id },
+      select: {
+        name: true, owner: true, description: true, licenseCount: true,
+        expDate: true, pricePerUnit: true, totalPrice: true, monthlyPrice: true,
+        notes: true, vendorId: true, categoryId: true,
+      },
+    });
 
     const data: any = {
       name: body.name,
@@ -55,6 +67,51 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const updated = await prisma.software.update({ where: { id }, data });
+
+    // ถ้า expDate เปลี่ยนเอง (ไม่ใช่ต่อสัญญาผ่าน /renewals) → สร้าง Renewal อัตโนมัติด้วย
+    const beforeExpIso = before?.expDate ? before.expDate.toISOString() : null;
+    const afterExpIso = data.expDate ? data.expDate.toISOString() : null;
+    if (before && beforeExpIso !== afterExpIso && data.expDate) {
+      await prisma.renewal.create({
+        data: {
+          softwareId: id,
+          renewalDate: new Date(),
+          expDateBefore: before.expDate,
+          expDateAfter: data.expDate,
+          amountPaid: data.totalPrice ?? null,
+          notes: "อัปเดตจากหน้า Edit",
+          createdBy: username,
+        },
+      });
+    }
+
+    // Audit log — เก็บเฉพาะ field ที่เปลี่ยนจริง
+    if (before) {
+      const fields: Array<keyof typeof before> = [
+        "name", "owner", "description", "licenseCount", "expDate",
+        "pricePerUnit", "totalPrice", "monthlyPrice", "notes",
+        "vendorId", "categoryId",
+      ];
+      for (const f of fields) {
+        const a = (before as any)[f];
+        const b = (data as any)[f];
+        const aStr = a instanceof Date ? a.toISOString() : a;
+        const bStr = b instanceof Date ? b.toISOString() : b;
+        if (aStr !== bStr) {
+          await prisma.auditLog.create({
+            data: {
+              entityType: "software",
+              entityId: id,
+              action: "update",
+              field: f as string,
+              valueBefore: a !== null && a !== undefined ? JSON.stringify(a) : null,
+              valueAfter: b !== null && b !== undefined ? JSON.stringify(b) : null,
+              changedBy: username,
+            },
+          });
+        }
+      }
+    }
 
     // เคลียร์ notification log เพื่อให้แจ้งใหม่ตามวันหมดอายุที่เปลี่ยน
     if (body.expDate !== undefined) {
