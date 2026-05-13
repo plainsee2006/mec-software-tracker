@@ -142,6 +142,7 @@ export async function POST(request: Request) {
     await prisma.software.deleteMany();
 
     const swMap = new Map<string, number>();
+    const swMapByDate = new Map<string, number>();
     let swCount = 0;
     for (const m of masters) {
       const sw = await prisma.software.create({
@@ -156,15 +157,22 @@ export async function POST(request: Request) {
       swCount++;
       const key = m.program.toLowerCase().replace(/\s+/g, " ").trim();
       if (!swMap.has(key)) swMap.set(key, sw.id);
+      // composite key — ใช้สำหรับ match batch ที่มีหลายวันหมดอายุ
+      if (m.expDate) {
+        const iso = m.expDate.toISOString().slice(0, 10);
+        swMapByDate.set(`${key}|${iso}`, sw.id);
+      }
     }
 
-    const sheets = [
-      // รูปแบบใหม่ (ไฟล์ 30-04-2026 v01) — แยก sheet ของแต่ละโปรแกรม
+    type SheetSpec = { sheetName: string; programs: string[]; expDate?: string };
+    const sheets: SheetSpec[] = [
+      // รูปแบบใหม่ — แยก sheet ของแต่ละโปรแกรม
       { sheetName: "Adobe", programs: ["Acrobat Pro"] },
-      { sheetName: "AutoCad LT -19-06-2026", programs: ["AutoCAD LT"] },
-      { sheetName: "AutoCad LT -03-07-28", programs: ["AutoCAD LT"] },
-      { sheetName: "AutoCad LT -31-08-26", programs: ["AutoCAD LT"] },
-      { sheetName: "AutoCad LT -27-12-26", programs: ["AutoCAD LT"] },
+      // AutoCAD LT แยก 4 batch ตามวันหมดอายุ
+      { sheetName: "AutoCad LT -19-06-2026", programs: ["AutoCAD LT"], expDate: "2026-06-19" },
+      { sheetName: "AutoCad LT -03-07-28", programs: ["AutoCAD LT"], expDate: "2028-07-03" },
+      { sheetName: "AutoCad LT -31-08-26", programs: ["AutoCAD LT"], expDate: "2026-08-31" },
+      { sheetName: "AutoCad LT -27-12-26", programs: ["AutoCAD LT"], expDate: "2026-12-27" },
       { sheetName: "AEC", programs: ["AEC"] },
       { sheetName: "AutoDesk DOC", programs: ["AutoDesk DOC", "DOC"] },
       { sheetName: "AutoCAD", programs: ["AutoCAD"] },
@@ -174,19 +182,24 @@ export async function POST(request: Request) {
       { sheetName: "Microsoft Basic", programs: ["Microsoft 365 Basic"] },
       { sheetName: "Microsft Standard", programs: ["Microsoft 365 Standard"] },
       { sheetName: "Microsoft Premium", programs: ["Microsoft 365 Premium"] },
-      { sheetName: "Microsoft Project", programs: ["Microsoft Project"] },
-      // ของเก่า (backward compat) — เผื่อใช้ไฟล์เดิม
+      { sheetName: "Microsoft Project", programs: ["Microsoft Project", "Microsoft Project Plan 3"] },
+      // ของเก่า (backward compat)
       { sheetName: "AutoCAD LT", programs: ["AutoCAD LT"] },
       { sheetName: "AEC + DOC", programs: ["AEC", "DOC"] },
       { sheetName: "AutoCAD + BIM Collaborate P", programs: ["AutoCAD", "BIM Collaborate Pro"] },
       { sheetName: "Sketch up + Midas", programs: ["Sketch up PRO", "Midas Gen Plus"] },
     ];
 
-    const findSwId = (name: string) => {
+    const findSwId = (name: string, expDateHint?: string) => {
       const k = name.toLowerCase().replace(/\s+/g, " ").trim();
-      // exact match เท่านั้น — เลี่ยงปัญหา "AutoCAD" จับมาที่ "AutoCAD LT"
+      // ลอง composite key (name+date) ก่อนถ้ามี hint
+      if (expDateHint) {
+        const dateKey = `${k}|${expDateHint}`;
+        if (swMapByDate.has(dateKey)) return swMapByDate.get(dateKey)!;
+      }
+      // exact match
       if (swMap.has(k)) return swMap.get(k)!;
-      // fallback: full-word prefix (ต้องตามด้วย space ใน key เพื่อไม่ให้ AutoCAD จับ AutoCAD LT)
+      // fallback: full-word prefix
       for (const [key, id] of swMap) {
         if (key.startsWith(k + " ") || k.startsWith(key + " ")) return id;
       }
@@ -233,7 +246,7 @@ export async function POST(request: Request) {
 
       let swId: number | null = null;
       for (const p of spec.programs) {
-        swId = findSwId(p);
+        swId = findSwId(p, spec.expDate);
         if (swId) break;
       }
       if (!swId) continue;
@@ -247,7 +260,20 @@ export async function POST(request: Request) {
         const lastName = cLastName >= 0 ? str(r[cLastName]) : null;
         const isThai = fullName && /[฀-๿]/.test(fullName);
         const nameTh = isThai ? fullName : null;
-        const nameEn = !isThai && fullName ? fullName : (lastName ? `${display} ${lastName}` : display);
+        // English name:
+        //  - ถ้า fullName เป็นอังกฤษ + มี lastName → "First Last"
+        //  - ถ้า fullName เป็นอังกฤษเต็มแล้ว → ใช้ตามนั้น
+        //  - ถ้า fullName เป็นไทย → ใช้ display + lastName ถ้ามี
+        let nameEn: string;
+        if (!isThai && fullName && lastName && !fullName.toLowerCase().includes(lastName.toLowerCase())) {
+          nameEn = `${fullName} ${lastName}`.trim();
+        } else if (!isThai && fullName) {
+          nameEn = fullName;
+        } else if (lastName) {
+          nameEn = `${display} ${lastName}`.trim();
+        } else {
+          nameEn = display;
+        }
         const email = cEmail >= 0 ? str(r[cEmail]) : null;
         const accountEmail = cAccount >= 0 ? str(r[cAccount]) : null;
         const phone = cPhone >= 0 ? str(r[cPhone]) : null;
