@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, X, MinusCircle, Trash2, Loader2 } from "lucide-react";
+import { Check, X, MinusCircle, Trash2, Loader2, ArrowRightLeft } from "lucide-react";
 import Badge from "./Badge";
 
 type Status = "Active" | "Inactive" | "Vacant";
@@ -18,15 +18,22 @@ interface UserInfo {
   office: string | null;
 }
 
+interface MoveTarget {
+  id: number;
+  name: string;
+  expDate: string | null;
+}
+
 interface Props {
   index: number;
   id: number;
   status: string;
   displayName: string | null;
   user: UserInfo | null;
+  moveTargets?: MoveTarget[];
 }
 
-export default function AssignmentRow({ index, id, status, displayName, user }: Props) {
+export default function AssignmentRow({ index, id, status, displayName, user, moveTargets = [] }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
@@ -64,6 +71,26 @@ export default function AssignmentRow({ index, id, status, displayName, user }: 
         router.refresh();
       } else {
         alert(`ลบไม่สำเร็จ: ${j.error}`);
+      }
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function moveTo(targetId: number) {
+    setPending(true);
+    setOpen(false);
+    try {
+      const res = await fetch(`/api/assignments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ softwareId: targetId }),
+      });
+      const j = await res.json();
+      if (j.ok) {
+        router.refresh();
+      } else {
+        alert(`ย้ายไม่สำเร็จ: ${j.error}`);
       }
     } finally {
       setPending(false);
@@ -137,23 +164,4 @@ export default function AssignmentRow({ index, id, status, displayName, user }: 
               </button>
               <button
                 onClick={() => changeStatus("Vacant")}
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2"
-              >
-                <MinusCircle className="w-3.5 h-3.5 text-yellow-600" />
-                Vacant (ว่าง)
-              </button>
-              <div className="border-t border-slate-100 my-1" />
-              <button
-                onClick={handleDelete}
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                ลบออก
-              </button>
-            </div>
-          </>
-        )}
-      </td>
-    </tr>
-  );
-}
+                className=

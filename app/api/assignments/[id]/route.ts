@@ -41,6 +41,10 @@ export async function PATCH(
     }
     if (body.duration !== undefined) data.duration = body.duration || null;
     if (body.notes !== undefined) data.notes = body.notes || null;
+    // รองรับการย้ายไป Software อื่น
+    if (body.softwareId !== undefined && body.softwareId !== before.softwareId) {
+      data.softwareId = Number(body.softwareId);
+    }
 
     const updated = await prisma.assignment.update({
       where: { id },
@@ -98,13 +102,4 @@ export async function DELETE(
         action: "delete",
         field: null,
         valueBefore: JSON.stringify(before),
-        valueAfter: null,
-        changedBy: username,
-      },
-    });
-
-    return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
-  }
-}
+        valueAft

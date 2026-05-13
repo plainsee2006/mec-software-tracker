@@ -6,6 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import RenewalPanel from "@/components/RenewalPanel";
 import AssignmentRow from "@/components/AssignmentRow";
+import AddUserPanel from "@/components/AddUserPanel";
 import {
   formatDate,
   formatTHB,
@@ -40,6 +41,22 @@ export default async function SoftwareDetailPage({
     },
   });
   if (!sw) notFound();
+
+  // batch อื่น ๆ ที่มีชื่อโปรแกรมเดียวกัน — สำหรับเมนู "ย้ายไป batch อื่น"
+  const otherBatches = await prisma.software.findMany({
+    where: { name: sw.name, id: { not: sw.id } },
+    select: { id: true, name: true, expDate: true },
+    orderBy: { expDate: "asc" },
+  });
+
+  // users ทั้งหมด — ใช้สำหรับ AddUserPanel
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, nameTh: true, nameEn: true, email: true },
+    orderBy: { nameEn: "asc" },
+  });
+  const assignedUserIds = sw.assignments
+    .filter((a) => a.userId !== null)
+    .map((a) => a.userId!) as number[];
 
   const status = getExpiryStatus(sw.expDate);
   const days = daysUntil(sw.expDate);
@@ -161,12 +178,11 @@ export default async function SoftwareDetailPage({
               <h2 className="font-semibold text-slate-900">รายชื่อผู้ใช้งาน</h2>
               <p className="text-xs text-slate-500 mt-0.5">{sw.assignments.length} รายการ</p>
             </div>
-            <Link
-              href={`/softwares/${sw.id}/edit#assign`}
-              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
-            >
-              <Plus className="w-4 h-4" /> เพิ่มผู้ใช้
-            </Link>
+            <AddUserPanel
+              softwareId={sw.id}
+              users={allUsers}
+              assignedUserIds={assignedUserIds}
+            />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -201,6 +217,11 @@ export default async function SoftwareDetailPage({
                           }
                         : null
                     }
+                    moveTargets={otherBatches.map((b) => ({
+                      id: b.id,
+                      name: b.name,
+                      expDate: b.expDate ? b.expDate.toISOString() : null,
+                    }))}
                   />
                 ))}
                 {sw.assignments.length === 0 && (
@@ -227,4 +248,4 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+                                                                                                                                                                                                                           
