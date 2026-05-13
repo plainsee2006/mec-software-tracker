@@ -184,8 +184,11 @@ export async function POST(request: Request) {
 
     const findSwId = (name: string) => {
       const k = name.toLowerCase().replace(/\s+/g, " ").trim();
+      // exact match เท่านั้น — เลี่ยงปัญหา "AutoCAD" จับมาที่ "AutoCAD LT"
+      if (swMap.has(k)) return swMap.get(k)!;
+      // fallback: full-word prefix (ต้องตามด้วย space ใน key เพื่อไม่ให้ AutoCAD จับ AutoCAD LT)
       for (const [key, id] of swMap) {
-        if (key === k || key.startsWith(k) || k.startsWith(key)) return id;
+        if (key.startsWith(k + " ") || k.startsWith(key + " ")) return id;
       }
       return null;
     };
@@ -210,9 +213,16 @@ export async function POST(request: Request) {
       const findCol = (...names: string[]) =>
         headers.findIndex((h) => names.some((n) => h.toLowerCase().includes(n.toLowerCase())));
 
-      const cAssigned = findCol("Assigned", "Display name");
+      // หา column สำหรับ display name — รองรับหลายรูปแบบ
+      // รูปแบบเก่า: "Assigned users" / "Display name"
+      // รูปแบบใหม่ (AutoCad LT split): "Name " + "lastname"
+      let cAssigned = findCol("Assigned", "Display name");
+      if (cAssigned < 0) {
+        // ลองหา column "Name " (มี space ต่อท้าย) เพื่อไม่ให้จับ "lastname"
+        cAssigned = headers.findIndex((h) => h.toLowerCase().trim() === "name");
+      }
       const cFullName = findCol("ชื่อ-นามสกุล", "First name");
-      const cLastName = findCol("Last name");
+      const cLastName = headers.findIndex((h) => h.toLowerCase().trim() === "lastname" || h.toLowerCase() === "last name");
       const cPhone = findCol("เบอร์");
       const cPosition = findCol("ตำแหน่ง", "ฝ่าย");
       const cEmail = findCol("Email");
