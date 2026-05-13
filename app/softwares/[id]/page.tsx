@@ -5,6 +5,7 @@ import { Pencil, Plus } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import RenewalPanel from "@/components/RenewalPanel";
+import AssignmentRow from "@/components/AssignmentRow";
 import {
   formatDate,
   formatTHB,
@@ -181,48 +182,26 @@ export default async function SoftwareDetailPage({
               </thead>
               <tbody>
                 {sw.assignments.map((a, i) => (
-                  <tr key={a.id} className="border-t border-slate-100">
-                    <td className="px-4 py-2.5 text-slate-400">{i + 1}</td>
-                    <td className="px-4 py-2.5">
-                      {a.user ? (
-                        <Link
-                          href={`/users/${a.user.id}`}
-                          className="font-medium hover:text-blue-600"
-                        >
-                          {a.user.nameTh || a.user.nameEn || "-"}
-                        </Link>
-                      ) : (
-                        <span className="text-slate-400 italic">
-                          {a.displayName || "ว่าง"}
-                        </span>
-                      )}
-                      {a.user?.nameEn && a.user.nameTh && (
-                        <div className="text-xs text-slate-500">{a.user.nameEn}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {a.user?.email || "-"}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {a.user?.position || a.user?.department || "-"}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {a.user?.office || "-"}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Badge
-                        className={
-                          a.status === "Active"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : a.status === "Vacant"
-                            ? "bg-slate-100 text-slate-600"
-                            : "bg-slate-100 text-slate-500"
-                        }
-                      >
-                        {a.status}
-                      </Badge>
-                    </td>
-                  </tr>
+                  <AssignmentRow
+                    key={a.id}
+                    index={i}
+                    id={a.id}
+                    status={a.status}
+                    displayName={a.displayName}
+                    user={
+                      a.user
+                        ? {
+                            id: a.user.id,
+                            nameTh: a.user.nameTh,
+                            nameEn: a.user.nameEn,
+                            email: a.user.email,
+                            position: a.user.position,
+                            department: a.user.department,
+                            office: a.user.office,
+                          }
+                        : null
+                    }
+                  />
                 ))}
                 {sw.assignments.length === 0 && (
                   <tr>
@@ -248,3 +227,4 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
