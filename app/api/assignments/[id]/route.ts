@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 
-// PATCH /api/assignments/[id] — เปลี่ยน status ของ assignment
+// PATCH /api/assignments/[id] — change status / duration / notes / move software
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -17,7 +17,7 @@ export async function PATCH(
     const status: string | undefined = body.status;
     if (status && !["Active", "Inactive", "Vacant"].includes(status)) {
       return NextResponse.json(
-        { ok: false, error: "status ต้องเป็น Active / Inactive / Vacant" },
+        { ok: false, error: "status must be Active / Inactive / Vacant" },
         { status: 400 }
       );
     }
@@ -27,7 +27,7 @@ export async function PATCH(
       select: { status: true, softwareId: true },
     });
     if (!before) {
-      return NextResponse.json({ ok: false, error: "ไม่พบ Assignment" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Assignment not found" }, { status: 404 });
     }
 
     const data: any = {};
@@ -41,7 +41,6 @@ export async function PATCH(
     }
     if (body.duration !== undefined) data.duration = body.duration || null;
     if (body.notes !== undefined) data.notes = body.notes || null;
-    // รองรับการย้ายไป Software อื่น
     if (body.softwareId !== undefined && body.softwareId !== before.softwareId) {
       data.softwareId = Number(body.softwareId);
     }
@@ -51,7 +50,6 @@ export async function PATCH(
       data,
     });
 
-    // audit log
     if (status && status !== before.status) {
       const username = await getCurrentUser();
       await prisma.auditLog.create({
@@ -73,7 +71,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/assignments/[id] — ลบ assignment ออก (เช่นถ้าคนลาออก)
+// DELETE /api/assignments/[id]
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
@@ -89,7 +87,7 @@ export async function DELETE(
       select: { status: true, userId: true, displayName: true },
     });
     if (!before) {
-      return NextResponse.json({ ok: false, error: "ไม่พบ Assignment" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Assignment not found" }, { status: 404 });
     }
 
     await prisma.assignment.delete({ where: { id } });
@@ -102,4 +100,13 @@ export async function DELETE(
         action: "delete",
         field: null,
         valueBefore: JSON.stringify(before),
-        valueAft
+        valueAfter: null,
+        changedBy: username,
+      },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  }
+}
