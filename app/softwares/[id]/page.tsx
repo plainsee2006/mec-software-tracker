@@ -193,7 +193,8 @@ export default async function SoftwareDetailPage({
                   <th className="text-left px-4 py-2.5">Email</th>
                   <th className="text-left px-4 py-2.5">ตำแหน่ง / ฝ่าย</th>
                   <th className="text-left px-4 py-2.5">สำนักงาน</th>
-                  <th className="text-left px-4 py-2.5">สถานะ</th>
+                  <th className="text-left px-4 py-2.5">Status</th>
+                  <th className="text-left px-4 py-2.5">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,7 +227,7 @@ export default async function SoftwareDetailPage({
                 ))}
                 {sw.assignments.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                       ยังไม่มีผู้ใช้งาน
                     </td>
                   </tr>

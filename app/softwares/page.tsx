@@ -162,68 +162,112 @@ export default async function SoftwareListPage({
           </div>
         </form>
 
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-2.5">Software</th>
-                  <th className="text-left px-4 py-2.5">Vendor</th>
-                  <th className="text-left px-4 py-2.5">หมวดหมู่</th>
-                  <th className="text-center px-4 py-2.5">License</th>
-                  <th className="text-right px-4 py-2.5">ราคา/Unit</th>
-                  <th className="text-right px-4 py-2.5">รวม</th>
-                  <th className="text-left px-4 py-2.5">วันหมดอายุ</th>
-                  <th className="text-left px-4 py-2.5">สถานะ</th>
+                <tr className="bg-gradient-to-r from-slate-50 to-white text-slate-600 text-xs uppercase tracking-wider">
+                  <th className="text-left px-5 py-3 font-semibold">Software</th>
+                  <th className="text-left px-4 py-3 font-semibold">Vendor</th>
+                  <th className="text-left px-4 py-3 font-semibold">หมวดหมู่</th>
+                  <th className="text-left px-4 py-3 font-semibold w-44">License</th>
+                  <th className="text-right px-4 py-3 font-semibold">ราคา/Unit</th>
+                  <th className="text-right px-4 py-3 font-semibold">รวม</th>
+                  <th className="text-left px-4 py-3 font-semibold">วันหมดอายุ</th>
+                  <th className="text-left px-4 py-3 font-semibold">สถานะ</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((s) => {
                   const status = getExpiryStatus(s.expDate);
                   const days = daysUntil(s.expDate);
+                  const used = s._count.assignments;
+                  const total = s.licenseCount;
+                  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+                  const usageBar =
+                    used > total ? "bg-red-500" :
+                    pct >= 100 ? "bg-amber-500" :
+                    pct >= 70 ? "bg-blue-500" :
+                    "bg-emerald-500";
+                  let h = 0;
+                  for (let i = 0; i < s.name.length; i++) h = (h * 31 + s.name.charCodeAt(i)) >>> 0;
+                  const grads = [
+                    "from-blue-500 to-indigo-600",
+                    "from-emerald-500 to-teal-600",
+                    "from-amber-500 to-orange-500",
+                    "from-rose-500 to-pink-500",
+                    "from-violet-500 to-purple-600",
+                    "from-sky-500 to-cyan-500",
+                    "from-fuchsia-500 to-pink-600",
+                    "from-lime-500 to-green-600",
+                  ];
+                  const grad = grads[h % grads.length];
+                  const initial = s.name.trim().slice(0, 1).toUpperCase();
                   return (
                     <tr
                       key={s.id}
-                      className="border-t border-slate-100 hover:bg-slate-50"
+                      className="border-t border-slate-100 hover:bg-blue-50/40 transition-colors group"
                     >
-                      <td className="px-4 py-2.5">
-                        <Link
-                          href={`/softwares/${s.id}`}
-                          className="font-medium text-slate-900 hover:text-blue-600"
-                        >
-                          {s.name}
-                        </Link>
-                        {s.owner && (
-                          <div className="text-xs text-slate-500 mt-0.5">{s.owner}</div>
-                        )}
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${grad} text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform flex-shrink-0`}>
+                            {initial}
+                          </div>
+                          <div className="min-w-0">
+                            <Link
+                              href={`/softwares/${s.id}`}
+                              className="font-semibold text-slate-900 hover:text-blue-600 block truncate"
+                            >
+                              {s.name}
+                            </Link>
+                            {s.owner && (
+                              <div className="text-xs text-slate-500">{s.owner}</div>
+                            )}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-4 py-2.5 text-slate-600">
-                        {s.vendor?.name || "-"}
+                      <td className="px-4 py-3 text-slate-600">
+                        {s.vendor?.name ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
+                            {s.vendor.name}
+                          </span>
+                        ) : "-"}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-3">
                         {s.category && (
                           <Badge className="bg-slate-100 text-slate-700">
                             {s.category.name}
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <span className="font-medium">{s._count.assignments}</span>
-                        <span className="text-slate-400">/{s.licenseCount}</span>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                            {used}/{total}
+                          </span>
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden min-w-[60px]">
+                            <div
+                              className={`h-full ${usageBar} transition-all duration-500`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-4 py-2.5 text-right text-slate-600">
+                      <td className="px-4 py-3 text-right text-slate-600 tabular-nums">
                         {formatTHB(s.pricePerUnit)}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-medium">
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums">
                         {formatTHB(s.totalPrice)}
                       </td>
-                      <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">
-                        {formatDate(s.expDate)}
+                      <td className="px-4 py-3">
+                        <div className="text-slate-700 font-medium whitespace-nowrap">{formatDate(s.expDate)}</div>
                         {days !== null && (
-                          <div className="text-xs text-slate-400">{days} วัน</div>
+                          <div className={`text-xs ${days < 0 ? "text-red-500" : days <= 30 ? "text-amber-600" : "text-slate-400"}`}>
+                            {days < 0 ? `เกิน ${Math.abs(days)} วัน` : `เหลือ ${days} วัน`}
+                          </div>
                         )}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-3">
                         <Badge className={expiryStatusBadgeClass(status)}>
                           {expiryStatusLabel(status)}
                         </Badge>

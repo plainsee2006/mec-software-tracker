@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Plus, Search } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import Badge from "@/components/Badge";
+import UserRow from "@/components/UserRow";
 
 export const dynamic = "force-dynamic";
 
@@ -219,43 +219,29 @@ export default async function UsersPage({
                   <th className="text-left px-4 py-2.5">แผนก / ฝ่าย</th>
                   <th className="text-left px-4 py-2.5">Project</th>
                   <th className="text-center px-4 py-2.5">License</th>
-                  <th className="text-left px-4 py-2.5">สถานะ</th>
+                  <th className="text-left px-4 py-2.5">Status</th>
+                  <th className="text-left px-4 py-2.5">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u, idx) => (
-                  <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-2.5 text-center text-slate-500 text-sm">{idx + 1}</td>
-                    <td className="px-4 py-2.5">
-                      <Link href={`/users/${u.id}`} className="font-medium hover:text-blue-600">
-                        {u.nameTh || u.nameEn || "-"}
-                      </Link>
-                      {u.nameEn && u.nameTh && (
-                        <div className="text-xs text-slate-500">{u.nameEn}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">{u.email || "-"}</td>
-                    <td className="px-4 py-2.5 text-slate-600">
-                      {u.position || u.department || "-"}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600">{u.office || "-"}</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <Badge className="bg-blue-100 text-blue-800">
-                        {u._count.assignments}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      {u.active ? (
-                        <Badge className="bg-emerald-100 text-emerald-800">Active</Badge>
-                      ) : (
-                        <Badge className="bg-slate-100 text-slate-600">Inactive</Badge>
-                      )}
-                    </td>
-                  </tr>
+                  <UserRow
+                    key={u.id}
+                    index={idx}
+                    id={u.id}
+                    nameTh={u.nameTh}
+                    nameEn={u.nameEn}
+                    email={u.email}
+                    position={u.position}
+                    department={u.department}
+                    office={u.office}
+                    active={u.active}
+                    licenseCount={u._count.assignments}
+                  />
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
                       ไม่พบผู้ใช้งาน
                     </td>
                   </tr>
@@ -268,4 +254,3 @@ export default async function UsersPage({
     </>
   );
 }
-            
