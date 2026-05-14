@@ -176,6 +176,9 @@ export async function POST(request: Request) {
       { sheetName: "AEC", programs: ["AEC"] },
       { sheetName: "AutoDesk DOC", programs: ["AutoDesk DOC", "DOC"] },
       { sheetName: "AutoCAD", programs: ["AutoCAD"] },
+      // AutoCAD แยก 2 batch ตามวันหมดอายุ (file v1)
+      { sheetName: "AutoCAD -01-09-26", programs: ["AutoCAD"], expDate: "2026-08-31" },
+      { sheetName: "AutoCAD -04-07-26", programs: ["AutoCAD"], expDate: "2026-07-03" },
       { sheetName: "BIM Collaborate P", programs: ["BIM Collaborate Pro"] },
       { sheetName: "Sketchup Pro", programs: ["Sketch up Pro", "Sketchup Pro"] },
       { sheetName: "Midas", programs: ["Midas Gen Plus", "Midas"] },
