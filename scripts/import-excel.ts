@@ -289,7 +289,11 @@ async function main() {
           softwareId: swId,
           userId,
           displayName: userId ? null : display,
-          status: display.toLowerCase() === "ว่าง" ? "Vacant" : "Active",
+          status:
+              display.toLowerCase() === "ว่าง" ||
+              (fullName && fullName.trim() === "ว่าง")
+                ? "Vacant"
+                : "Active",
           duration,
         },
       });

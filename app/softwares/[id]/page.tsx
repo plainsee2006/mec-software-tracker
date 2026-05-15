@@ -60,7 +60,12 @@ export default async function SoftwareDetailPage({
 
   const status = getExpiryStatus(sw.expDate);
   const days = daysUntil(sw.expDate);
-  const activeCount = sw.assignments.filter((a) => a.status === "Active").length;
+  // นับเฉพาะ Active ที่ไม่ใช่ "ว่าง" (placeholder)
+  const isPlaceholder = (a: any) => {
+    const name = (a.user?.nameTh || a.user?.nameEn || a.displayName || "").trim();
+    return name === "ว่าง" || name === "" || name === "-";
+  };
+  const activeCount = sw.assignments.filter((a) => a.status === "Active" && !isPlaceholder(a)).length;
 
   return (
     <>

@@ -41,6 +41,7 @@ export async function PATCH(
     }
     if (body.duration !== undefined) data.duration = body.duration || null;
     if (body.notes !== undefined) data.notes = body.notes || null;
+    if (body.displayName !== undefined) data.displayName = body.displayName || null;
     if (body.softwareId !== undefined && body.softwareId !== before.softwareId) {
       data.softwareId = Number(body.softwareId);
     }
